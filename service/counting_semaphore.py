@@ -77,8 +77,17 @@ def get_semaphore():
     if not semaphore_id:
         raise BadRequest("Parameter 'semaphore_id' required")
 
-    max_holders = request.args.get('max_holders', 10)
-    ttl = request.args.get('ttl', 60)
+    try:
+        max_holders = int(request.args.get('max_holders', 10))
+    except ValueError:
+        logger.warning("Error in max_holders parameter: %s" % request.args.get('max_holders'))
+        max_holders = 10
+
+    try:
+        ttl = int(request.args.get('ttl', 60))
+    except ValueError:
+        logger.warning("Error in ttl parameter: %s" % request.args.get('ttl'))
+        ttl = 60
 
     with semaphore_writers_lock:
         if not semaphore_id in semaphores:
