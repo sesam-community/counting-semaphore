@@ -40,6 +40,6 @@ RUN pip3 install --no-cache-dir cython
 COPY ./service /service
 WORKDIR /service
 RUN pip install -r requirements.txt
-EXPOSE 5555/tcp 5000/tcp
+EXPOSE 5115/tcp
 ENTRYPOINT ["python3"]
 CMD ["counting_semaphore.py"]
