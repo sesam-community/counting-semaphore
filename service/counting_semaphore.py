@@ -120,8 +120,8 @@ def get_semaphore():
     return Response(json.dumps({"session": session}), mimetype='application/json')
 
 
-@app.route('/release-session', methods=['DELETE'])
-def release_session():
+@app.route('/release-semaphore', methods=['DELETE'])
+def release_semaphore():
     global sessions
     global semaphores
 
@@ -138,55 +138,61 @@ def release_session():
         semaphores.pop(semaphore_id)
 
     with session_writers_lock:
-        for session in semaphore["holders"]:
-            if session in sessions:
-                sessions.pop(session)
+        for session_id in semaphore["holders"]:
+            if session_id in sessions:
+                sessions.pop(session_id)
 
-    return Response("Semaphore '%s' released" % semaphore, mimetype='text/plain')
+    logger.info("Released semaphore '%s'" % semaphore_id)
+
+    return Response("Semaphore '%s' released" % semaphore_id, mimetype='text/plain')
 
 
-@app.route('/release-semaphore', methods=['DELETE'])
-def release_semaphore():
+@app.route('/release-session', methods=['DELETE'])
+def release_session():
     global session
     global semaphores
 
-    session = request.args.get('session')
+    session_id = request.args.get('session')
 
-    if not session:
+    if not session_id:
         raise BadRequest("Parameter 'session' required")
 
     with session_writers_lock:
-        if session not in sessions:
-            raise NotFound("No active session found for session id '%s' - perhaps it has timed out?" % session)
+        if session_id not in sessions:
+            raise NotFound("No active session found for session id '%s' - perhaps it has timed out?" % session_id)
 
-        session = sessions[session]
+        session = sessions[session_id]
         sessions.pop(session)
+
+        logger.info("Released session '%s' (%s)" % (session_id, json.dumps(session)))
 
     with semaphore_writers_lock:
         semaphore_id = session["semaphore"]
         semaphore = semaphores.get(semaphore_id)
         if semaphore:
-            if session in semaphore["holders"]:
-                semaphore["holders"].pop(session)
+            if session_id in semaphore["holders"]:
+                semaphore["holders"].pop(session_id)
 
-    return Response("Session '%s' released" % session, mimetype='text/plain')
+    return Response("Session '%s' released" % session_id, mimetype='text/plain')
 
 
 @app.route('/renew-session', methods=['POST'])
 def renew_session():
     global sessions
 
-    session = request.args.get('session')
+    session_id = request.args.get('session')
 
-    if not session:
+    if not session_id:
         raise BadRequest("Parameter 'session' required")
 
     with session_writers_lock:
-        if session not in sessions:
-            raise NotFound("No active session found for session id '%s' - perhaps it has timed out?" % session)
+        if session_id not in sessions:
+            raise NotFound("No active session found for session id '%s' - perhaps it has timed out?" % session_id)
 
-        session = sessions[session]
+        session = sessions[session_id]
         session["updated"] = time.time()
+
+        logger.info("Renewed session '%s' (%s)" % (session_id, json.dumps(session)))
 
         return Response(json.dumps(session), mimetype='application/json')
 
