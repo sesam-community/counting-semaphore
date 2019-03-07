@@ -101,7 +101,7 @@ def get_semaphore():
         if len(semaphore["holders"]) >= semaphore["max_holders"]:
             raise Forbidden("Maximum number of semaphore holders for '%s' reached, try again later" % semaphore_id)
 
-        session = str(uuid.uuid4())
+        session_id = str(uuid.uuid4())
         created = time.time()
 
         session_info = {
@@ -112,12 +112,12 @@ def get_semaphore():
             "semaphore": semaphore_id
         }
 
-        semaphore["holders"][session] = session_info
+        semaphore["holders"][session_id] = session_info
 
     with session_writers_lock:
-        sessions[session] = session_info
+        sessions[session_id] = session_info
 
-    return Response(json.dumps({"session": session}), mimetype='application/json')
+    return Response(json.dumps({"session": session_id}), mimetype='application/json')
 
 
 @app.route('/release-semaphore', methods=['DELETE'])
@@ -162,7 +162,7 @@ def release_session():
             raise NotFound("No active session found for session id '%s' - perhaps it has timed out?" % session_id)
 
         session = sessions[session_id]
-        sessions.pop(session)
+        sessions.pop(session_id)
 
         logger.info("Released session '%s' (%s)" % (session_id, json.dumps(session)))
 
