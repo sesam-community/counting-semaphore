@@ -92,11 +92,11 @@ def get_semaphore():
     with semaphore_writers_lock:
         if not semaphore_id in semaphores:
             semaphores[semaphore_id] = {
-                "max_holders": max_holders,
                 "holders": {}
             }
 
         semaphore = semaphores[semaphore_id]
+        semaphore["max_holders"] = max_holders
 
         if len(semaphore["holders"]) >= semaphore["max_holders"]:
             raise Forbidden("Maximum number of semaphore holders for '%s' reached, try again later" % semaphore_id)
