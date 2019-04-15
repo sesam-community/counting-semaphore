@@ -99,6 +99,7 @@ def get_semaphore():
         semaphore["max_holders"] = max_holders
 
         if len(semaphore["holders"]) >= semaphore["max_holders"]:
+            logger.debug("Maximum number of semaphore holders for '%s' reached, try again later" % semaphore_id)
             raise Forbidden("Maximum number of semaphore holders for '%s' reached, try again later" % semaphore_id)
 
         session_id = str(uuid.uuid4())
@@ -116,6 +117,9 @@ def get_semaphore():
 
     with session_writers_lock:
         sessions[session_id] = session_info
+
+    logger.debug("Acquired semaphore id '%s' - holders: %s of max %s" % (semaphore_id, len(semaphore["holders"]),
+                                                                         semaphore["max_holders"]))
 
     return Response(json.dumps({"session": session_id}), mimetype='application/json')
 
@@ -142,7 +146,7 @@ def release_semaphore():
             if session_id in sessions:
                 sessions.pop(session_id)
 
-    logger.info("Released semaphore '%s'" % semaphore_id)
+    logger.debug("Released semaphore '%s'" % semaphore_id)
 
     return Response("Semaphore '%s' released" % semaphore_id, mimetype='text/plain')
 
@@ -164,7 +168,7 @@ def release_session():
         session = sessions[session_id]
         sessions.pop(session_id)
 
-        logger.info("Released session '%s' (%s)" % (session_id, json.dumps(session)))
+        logger.debug("Released session '%s' (%s)" % (session_id, json.dumps(session)))
 
     with semaphore_writers_lock:
         semaphore_id = session["semaphore"]
@@ -192,7 +196,7 @@ def renew_session():
         session = sessions[session_id]
         session["updated"] = time.time()
 
-        logger.info("Renewed session '%s' (%s)" % (session_id, json.dumps(session)))
+        logger.debug("Renewed session '%s' (%s)" % (session_id, json.dumps(session)))
 
         return Response(json.dumps(session), mimetype='application/json')
 
@@ -227,6 +231,27 @@ def run_session_pruning():
         except BaseException as e:
             # log exception but keep executing
             logger.exception("Session pruner thread crashed")
+
+
+@app.route('/set-log-level', methods=['PUT'])
+def set_log_level():
+    loglevel = request.args.get('loglevel')
+
+    if loglevel and isinstance(loglevel, str):
+        loglevel = loglevel.upper()
+
+        if loglevel == "DEBUG":
+            logger.info("Setting loglevel to DEBUG")
+            logger.setLevel(logging.DEBUG)
+        elif loglevel == "INFO":
+            logger.info("Setting loglevel to INFO")
+            logger.setLevel(logging.INFO)
+        elif loglevel == "WARN" or loglevel == "WARNING":
+            logger.info("Setting loglevel to WARN")
+            logger.setLevel(logging.WARNING)
+        elif loglevel == "ERROR" or loglevel == "ERR":
+            logger.info("Setting loglevel to ERROR")
+            logger.setLevel(logging.ERROR)
 
 
 if __name__ == '__main__':
