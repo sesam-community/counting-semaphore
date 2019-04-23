@@ -263,7 +263,7 @@ if __name__ == '__main__':
     logger.addHandler(stdout_handler)
 
     logger.propagate = False
-    logger.setLevel(logging.DEBUG)
+    logger.setLevel(logging.INFO)
 
     pruner_thread = threading.Thread(target=run_session_pruning)
     pruner_thread.start()
