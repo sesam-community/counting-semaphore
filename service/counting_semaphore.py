@@ -13,6 +13,8 @@ import time
 import json
 import uuid
 import copy
+import sys
+import signal
 
 app = Flask(__name__)
 
@@ -265,7 +267,7 @@ if __name__ == '__main__':
     logger.propagate = False
     logger.setLevel(logging.INFO)
 
-    pruner_thread = threading.Thread(target=run_session_pruning)
+    pruner_thread = threading.Thread(target=run_session_pruning, daemon=True)
     pruner_thread.start()
 
     cherrypy.tree.graft(app, '/')
@@ -279,6 +281,11 @@ if __name__ == '__main__':
         'server.socket_host': '0.0.0.0',
         'server.thread_pool': 10
     })
+
+    def signal_handler(_signo, _stack_frame):
+        sys.exit(0)
+
+    signal.signal(signal.SIGTERM, signal_handler)
 
     # Start the CherryPy WSGI web server
     cherrypy.engine.start()
