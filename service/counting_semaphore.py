@@ -279,7 +279,7 @@ if __name__ == '__main__':
         'log.screen': True,
         'server.socket_port': 5115,
         'server.socket_host': '0.0.0.0',
-        'server.thread_pool': 10
+        'server.thread_pool': 100
     })
 
     def signal_handler(_signo, _stack_frame):
