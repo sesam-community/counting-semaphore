@@ -220,15 +220,17 @@ def run_session_pruning():
                         logger.info("Pruning session '%s' - it has timed out.." % session)
 
                         # Prune the session, it has timed out
-                        with semaphore_writers_lock:
-                            semaphore_id = session["semaphore"]
-                            semaphore = semaphores[semaphore_id]
-                            if session_id in semaphore["holders"]:
-                                semaphore["holders"].pop(session_id)
-
                         sessions.pop(session_id)
 
                 logger.info("Number of active sessions after pruning: %s" % len(sessions))
+
+            with semaphore_writers_lock:
+                logger.info("Pruning holders from semaphores..")
+                for semaphore in semaphores:
+                    for session_id, session in list(semaphore["holders"].items()):
+                        if now > session["updated"] + session["ttl"]:
+                            logger.info("Pruning holder '%s' from semaphore - it has timed out.." % session)
+                            semaphore["holders"].pop(session_id)
 
         except BaseException as e:
             # log exception but keep executing
